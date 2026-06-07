@@ -1,5 +1,6 @@
 package org.akuatech.ksupatcher.ui.screens
 
+import android.content.ClipData
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,9 +22,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import org.akuatech.ksupatcher.ui.components.RootStatusCard
 import org.akuatech.ksupatcher.viewmodel.UiState
 import org.akuatech.ksupatcher.util.DateUtils
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import android.widget.Toast
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.ui.res.painterResource
 import org.akuatech.ksupatcher.R
 import org.akuatech.ksupatcher.BuildConfig
+import kotlinx.coroutines.launch
 import java.time.Year
 
 @Composable
@@ -306,8 +308,15 @@ fun InfoRow(
     onClick: (() -> Unit)? = null,
     copyable: Boolean = false
 ) {
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    fun copyValue() {
+        coroutineScope.launch {
+            clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(label, value)))
+            Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -321,10 +330,7 @@ fun InfoRow(
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             val modifier = if (copyable) {
-                Modifier.clickable {
-                    clipboardManager.setText(AnnotatedString(value))
-                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
-                }.padding(horizontal = 4.dp, vertical = 2.dp)
+                Modifier.clickable { copyValue() }.padding(horizontal = 4.dp, vertical = 2.dp)
             } else if (onClick != null) {
                 Modifier.clickable(onClick = onClick).padding(horizontal = 4.dp, vertical = 2.dp)
             } else {
@@ -341,10 +347,7 @@ fun InfoRow(
             if (copyable) {
                 Spacer(modifier = Modifier.width(6.dp))
                 IconButton(
-                    onClick = {
-                        clipboardManager.setText(AnnotatedString(value))
-                        Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
-                    },
+                    onClick = { copyValue() },
                     modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
@@ -401,7 +404,7 @@ fun KmiSelectionCard(
                     color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
-                        .menuAnchor()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                         .fillMaxWidth()
                 ) {
                     Row(
