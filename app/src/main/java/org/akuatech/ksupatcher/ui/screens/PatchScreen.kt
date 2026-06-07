@@ -1,6 +1,7 @@
 package org.akuatech.ksupatcher.ui.screens
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -20,11 +21,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -37,6 +42,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.text.style.TextOverflow
 import org.akuatech.ksupatcher.ui.components.*
+import org.akuatech.ksupatcher.util.defaultLogFileName
+import org.akuatech.ksupatcher.util.writeLogToUri
 import org.akuatech.ksupatcher.viewmodel.InstallMethod
 import org.akuatech.ksupatcher.viewmodel.KsuVariant
 import org.akuatech.ksupatcher.viewmodel.OtaPhase
@@ -63,6 +70,22 @@ fun PatchScreen(
     val modulePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri -> uri?.let(onPickModule) }
+    )
+    val context = LocalContext.current
+    var pendingLogExport by remember { mutableStateOf("") }
+    val logExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain"),
+        onResult = { uri ->
+            if (uri != null) {
+                writeLogToUri(context, uri, pendingLogExport)
+                    .onSuccess {
+                        Toast.makeText(context, "Logs saved", Toast.LENGTH_SHORT).show()
+                    }
+                    .onFailure { error ->
+                        Toast.makeText(context, "Failed to save logs: ${error.message}", Toast.LENGTH_LONG).show()
+                    }
+            }
+        }
     )
 
     val patch = state.patchState
@@ -344,17 +367,39 @@ fun PatchScreen(
                         .padding(16.dp)
                         .animateContentSize()
                 ) {
-                    Text(
-                        buildAnnotatedString {
-                            withStyle(SpanStyle(color = Color(0xFF62A0EA), fontFamily = FontFamily.Monospace)) {
-                                append("$ ")
-                            }
-                            withStyle(SpanStyle(color = Color(0xFF9098A9))) {
-                                append("terminal output")
-                            }
-                        },
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            buildAnnotatedString {
+                                withStyle(SpanStyle(color = Color(0xFF62A0EA), fontFamily = FontFamily.Monospace)) {
+                                    append("$ ")
+                                }
+                                withStyle(SpanStyle(color = Color(0xFF9098A9))) {
+                                    append("terminal output")
+                                }
+                            },
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                        TextButton(
+                            onClick = {
+                                pendingLogExport = patch.lastOutput.orEmpty()
+                                val scope = if (patch.method == InstallMethod.LKM) "lkm" else "install"
+                                logExportLauncher.launch(defaultLogFileName(scope))
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Save,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Save logs")
+                        }
+                    }
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
