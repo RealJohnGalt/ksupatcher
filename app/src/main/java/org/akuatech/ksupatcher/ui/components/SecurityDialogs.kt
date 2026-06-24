@@ -146,7 +146,7 @@ fun DisclaimerDialog(onAccept: () -> Unit) {
                         Spacer(Modifier.height(6.dp))
                         CommandRow("su", "open su shell")
                         CommandRow("dd if=<block> of=<img>", "dump boot / init_boot partition")
-                        CommandRow("ksud patch --magiskboot …", "patch image with KernelSU")
+                        CommandRow("ksud boot-patch …", "patch image with KernelSU")
                         CommandRow("dd if=<img> of=<block>", "flash patched image to partition")
                         CommandRow("blockdev --setrw <block>", "unlock partition for writes")
                         CommandRow("svc power reboot", "reboot after patch completes")

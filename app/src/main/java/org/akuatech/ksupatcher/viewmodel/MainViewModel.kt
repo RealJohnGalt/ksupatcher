@@ -467,7 +467,7 @@ class MainViewModel(
             }
 
             val ksud = resolveBundledBinaryForVariant(_state.value.patchState.variant)
-            val magiskboot = resolveBundledBinary("libmagiskboot.so")
+            val magiskboot = if (_state.value.patchState.variant == KsuVariant.KSUN) resolveBundledBinary("libmagiskboot.so") else null
 
             _state.update {
                 it.copy(
@@ -490,20 +490,22 @@ class MainViewModel(
                 return@launch
             }
 
-            val command = listOf(
-                ksud.absolutePath,
-                "boot-patch",
-                "-b",
-                boot,
-                "--kmi",
-                kmi,
-                "--magiskboot",
-                magiskboot.absolutePath,
-                "--module",
-                module,
-                "-o",
-                workDir.absolutePath
-            )
+            val command = buildList {
+                add(ksud.absolutePath)
+                add("boot-patch")
+                add("-b")
+                add(boot)
+                add("--kmi")
+                add(kmi)
+                if (magiskboot != null) {
+                    add("--magiskboot")
+                    add(magiskboot.absolutePath)
+                }
+                add("--module")
+                add(module)
+                add("-o")
+                add(workDir.absolutePath)
+            }
 
             val result = executeCommandStreaming(command, workDir, _state.value.patchState.lastOutput)
             val patchedFile = if (result.isSuccess) findPatchedImage(workDir) else null
@@ -634,16 +636,16 @@ class MainViewModel(
                 File(legacyWorkDir, "ksud").delete()
                 File(legacyWorkDir, "magiskboot").delete()
 
-                val ksud = resolveBundledBinaryForVariant(_state.value.patchState.variant)
-                val magiskboot = resolveBundledBinary("libmagiskboot.so")
+            val ksud = resolveBundledBinaryForVariant(_state.value.patchState.variant)
+            val magiskboot = if (_state.value.patchState.variant == KsuVariant.KSUN) resolveBundledBinary("libmagiskboot.so") else null
                 ksud.setExecutable(true, false)
-                magiskboot.setExecutable(true, false)
+                magiskboot?.setExecutable(true, false)
 
-                if (!ksud.canExecute() || !magiskboot.canExecute()) {
+                if (!ksud.canExecute() || (magiskboot != null && !magiskboot.canExecute())) {
                     error(
                         "Bundled binaries are not executable. " +
                             "ksud=${ksud.absolutePath} canExec=${ksud.canExecute()}, " +
-                            "magiskboot=${magiskboot.absolutePath} canExec=${magiskboot.canExecute()}"
+                            "magiskboot=${magiskboot?.absolutePath} canExec=${magiskboot?.canExecute()}"
                     )
                 }
 
@@ -1049,7 +1051,7 @@ class MainViewModel(
                 return
             }
             val ksud = resolveBundledBinaryForVariant(_state.value.patchState.variant)
-            val magiskboot = resolveBundledBinary("libmagiskboot.so")
+            val magiskboot = if (_state.value.patchState.variant == KsuVariant.KSUN) resolveBundledBinary("libmagiskboot.so") else null
             val module = _state.value.patchState.modulePath
             if (module.isNullOrBlank()) {
                 setPhase(OtaPhase.ERROR)
@@ -1057,15 +1059,22 @@ class MainViewModel(
                 appendLog("No kernel module found. Please select one manually or ensure your internet connection is active to auto-download.")
                 return
             }
-            val patchCmd = listOf(
-                ksud.absolutePath,
-                "boot-patch",
-                "-b", dumpedImg.absolutePath,
-                "--kmi", _state.value.patchState.kmi,
-                "--magiskboot", magiskboot.absolutePath,
-                "--module", module,
-                "-o", workDir.absolutePath
-            )
+            val patchCmd = buildList {
+                add(ksud.absolutePath)
+                add("boot-patch")
+                add("-b")
+                add(dumpedImg.absolutePath)
+                add("--kmi")
+                add(_state.value.patchState.kmi)
+                if (magiskboot != null) {
+                    add("--magiskboot")
+                    add(magiskboot.absolutePath)
+                }
+                add("--module")
+                add(module)
+                add("-o")
+                add(workDir.absolutePath)
+            }
             appendLog("Patching boot image...")
             val initialLog = if (lkmMode) _state.value.patchState.lastOutput else _state.value.otaState.log
             val patchResult = executeCommandStreaming(patchCmd, workDir, initialLog)
