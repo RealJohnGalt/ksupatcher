@@ -30,7 +30,7 @@ Ksupatcher is a simple, native tool for managing KernelSU and KernelSU-Next dire
 - *Local Patching:* Patch boot images for KernelSU/KernelSU-Next on-device.
 - *OTA Survival:* Flash patched images to the inactive slot to keep root after a system update.
 - *LKM Support:* Download and install kernel modules (LKM) specific to your KMI.
-- *Live Logs:* Real-time terminal output from ~ksud~ and ~magiskboot~.
+- *Live Logs:* Real-time terminal output from ~ksud~.
 - *Theming:* Full Material 3 and Monet (dynamic color) support.
 - *Updates:* Check for and install new app versions from GitHub.
 

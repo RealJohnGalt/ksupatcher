@@ -467,7 +467,6 @@ class MainViewModel(
             }
 
             val ksud = resolveBundledBinaryForVariant(_state.value.patchState.variant)
-            val magiskboot = if (_state.value.patchState.variant == KsuVariant.KSUN) resolveBundledBinary("libmagiskboot.so") else null
 
             _state.update {
                 it.copy(
@@ -497,10 +496,6 @@ class MainViewModel(
                 add(boot)
                 add("--kmi")
                 add(kmi)
-                if (magiskboot != null) {
-                    add("--magiskboot")
-                    add(magiskboot.absolutePath)
-                }
                 add("--module")
                 add(module)
                 add("-o")
@@ -634,18 +629,14 @@ class MainViewModel(
 
                 val legacyWorkDir = File(context.filesDir, "work")
                 File(legacyWorkDir, "ksud").delete()
-                File(legacyWorkDir, "magiskboot").delete()
 
             val ksud = resolveBundledBinaryForVariant(_state.value.patchState.variant)
-            val magiskboot = if (_state.value.patchState.variant == KsuVariant.KSUN) resolveBundledBinary("libmagiskboot.so") else null
                 ksud.setExecutable(true, false)
-                magiskboot?.setExecutable(true, false)
 
-                if (!ksud.canExecute() || (magiskboot != null && !magiskboot.canExecute())) {
+                if (!ksud.canExecute()) {
                     error(
-                        "Bundled binaries are not executable. " +
-                            "ksud=${ksud.absolutePath} canExec=${ksud.canExecute()}, " +
-                            "magiskboot=${magiskboot?.absolutePath} canExec=${magiskboot?.canExecute()}"
+                        "Bundled binary is not executable. " +
+                            "ksud=${ksud.absolutePath} canExec=${ksud.canExecute()}, "
                     )
                 }
 
@@ -1051,7 +1042,6 @@ class MainViewModel(
                 return
             }
             val ksud = resolveBundledBinaryForVariant(_state.value.patchState.variant)
-            val magiskboot = if (_state.value.patchState.variant == KsuVariant.KSUN) resolveBundledBinary("libmagiskboot.so") else null
             val module = _state.value.patchState.modulePath
             if (module.isNullOrBlank()) {
                 setPhase(OtaPhase.ERROR)
@@ -1066,10 +1056,6 @@ class MainViewModel(
                 add(dumpedImg.absolutePath)
                 add("--kmi")
                 add(_state.value.patchState.kmi)
-                if (magiskboot != null) {
-                    add("--magiskboot")
-                    add(magiskboot.absolutePath)
-                }
                 add("--module")
                 add(module)
                 add("-o")
