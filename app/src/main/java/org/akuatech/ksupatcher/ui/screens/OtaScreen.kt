@@ -52,11 +52,15 @@ fun OtaScreen(
     isCheckingRoot: Boolean,
     variant: KsuVariant,
     moduleName: String?,
+    allowShell: Boolean,
+    enableAdbd: Boolean,
     onVariantSelected: (KsuVariant) -> Unit,
     onPickModule: (Uri) -> Unit,
     onRunOta: () -> Unit,
     onResetOta: () -> Unit,
-    onReboot: () -> Unit
+    onReboot: () -> Unit,
+    onToggleAllowShell: (Boolean) -> Unit,
+    onToggleEnableAdbd: (Boolean) -> Unit
 ) {
     val modulePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -181,6 +185,17 @@ fun OtaScreen(
                 onSelect = { modulePicker.launch(arrayOf("application/octet-stream")) }
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        StepConnector()
+        Spacer(modifier = Modifier.height(8.dp))
+
+        AdvancedOptionsSection(
+            allowShell = allowShell,
+            enableAdbd = enableAdbd,
+            onToggleAllowShell = onToggleAllowShell,
+            onToggleEnableAdbd = onToggleEnableAdbd
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 

@@ -117,6 +117,8 @@ fun KsuPatcherNavGraph(
                     onRunLkm = { viewModel.runLkmUpdate() },
                     onResetInstall = { viewModel.resetInstall() },
                     onReboot = { viewModel.rebootNow() },
+                    onToggleAllowShell = { viewModel.toggleAllowShell(it) },
+                    onToggleEnableAdbd = { viewModel.toggleEnableAdbd(it) },
                     onNavigateToSettings = {
                         navController.navigate("settings") {
                             popUpTo(navController.graph.startDestinationId) {
@@ -136,11 +138,15 @@ fun KsuPatcherNavGraph(
                     isCheckingRoot = state.isCheckingRoot,
                     variant = state.patchState.variant,
                     moduleName = state.patchState.moduleName,
+                    allowShell = state.patchState.allowShell,
+                    enableAdbd = state.patchState.enableAdbd,
                     onVariantSelected = { viewModel.selectVariant(it) },
                     onPickModule = { viewModel.importModule(it) },
                     onRunOta = { viewModel.runOtaPatch() },
                     onResetOta = { viewModel.resetOta() },
-                    onReboot = { viewModel.rebootNow() }
+                    onReboot = { viewModel.rebootNow() },
+                    onToggleAllowShell = { viewModel.toggleAllowShell(it) },
+                    onToggleEnableAdbd = { viewModel.toggleEnableAdbd(it) }
                 )
             }
             composable("settings") {

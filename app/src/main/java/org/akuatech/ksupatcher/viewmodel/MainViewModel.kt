@@ -92,7 +92,9 @@ data class PatchState(
     val lastOutput: String? = null,
     val outputPath: String? = null,
     val rebootRequired: Boolean = false,
-    val kmi: String = "android12-5.10"
+    val kmi: String = "android12-5.10",
+    val allowShell: Boolean = false,
+    val enableAdbd: Boolean = false
 )
 
 class MainViewModel(
@@ -299,6 +301,14 @@ class MainViewModel(
         _state.update { it.copy(patchState = it.patchState.copy(method = method)) }
     }
 
+    fun toggleAllowShell(enabled: Boolean) {
+        _state.update { it.copy(patchState = it.patchState.copy(allowShell = enabled)) }
+    }
+
+    fun toggleEnableAdbd(enabled: Boolean) {
+        _state.update { it.copy(patchState = it.patchState.copy(enableAdbd = enabled)) }
+    }
+
     fun importBootImage(uri: Uri) {
         viewModelScope.launch {
             val context = getApplication<Application>()
@@ -500,6 +510,8 @@ class MainViewModel(
                 add(module)
                 add("-o")
                 add(workDir.absolutePath)
+                if (_state.value.patchState.allowShell) add("--allow-shell")
+                if (_state.value.patchState.enableAdbd) add("--enable-adbd")
             }
 
             val result = executeCommandStreaming(command, workDir, _state.value.patchState.lastOutput)
@@ -1060,6 +1072,8 @@ class MainViewModel(
                 add(module)
                 add("-o")
                 add(workDir.absolutePath)
+                if (_state.value.patchState.allowShell) add("--allow-shell")
+                if (_state.value.patchState.enableAdbd) add("--enable-adbd")
             }
             appendLog("Patching boot image...")
             val initialLog = if (lkmMode) _state.value.patchState.lastOutput else _state.value.otaState.log

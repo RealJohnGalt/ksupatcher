@@ -61,7 +61,9 @@ fun PatchScreen(
     onRunLkm: () -> Unit,
     onResetInstall: () -> Unit,
     onReboot: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onToggleAllowShell: (Boolean) -> Unit,
+    onToggleEnableAdbd: (Boolean) -> Unit
 ) {
     val bootPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -223,6 +225,17 @@ fun PatchScreen(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        StepConnector()
+        Spacer(modifier = Modifier.height(8.dp))
+
+        AdvancedOptionsSection(
+            allowShell = patch.allowShell,
+            enableAdbd = patch.enableAdbd,
+            onToggleAllowShell = onToggleAllowShell,
+            onToggleEnableAdbd = onToggleEnableAdbd
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -486,6 +499,132 @@ fun FileSelector(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
                 modifier = Modifier.size(20.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun AdvancedOptionsSection(
+    allowShell: Boolean,
+    enableAdbd: Boolean,
+    onToggleAllowShell: (Boolean) -> Unit,
+    onToggleEnableAdbd: (Boolean) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        val headerShape = if (expanded) {
+            RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+        } else {
+            RoundedCornerShape(20.dp)
+        }
+
+        Surface(
+            onClick = { expanded = !expanded },
+            shape = headerShape,
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Tune,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Advanced Options",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessLow)),
+            exit = shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessLow))
+        ) {
+            Card(
+                shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Always grant root to Shell",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Always allow adb shell to call su. Do not enable this unless absolutely necessary.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(
+                            checked = allowShell,
+                            onCheckedChange = onToggleAllowShell
+                        )
+                    }
+
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Force enable adb on boot",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Force enable USB debugging and disable adb authentication. Do not enable this unless absolutely necessary.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(
+                            checked = enableAdbd,
+                            onCheckedChange = onToggleEnableAdbd
+                        )
+                    }
+                }
+            }
         }
     }
 }
