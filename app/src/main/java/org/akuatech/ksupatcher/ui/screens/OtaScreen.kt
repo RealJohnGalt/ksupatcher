@@ -373,9 +373,7 @@ private fun phaseLabel(phase: OtaPhase): String = when (phase) {
     OtaPhase.CHECKING_OTA_PROP -> "Checking OTA property…"
     OtaPhase.NO_OTA_PENDING -> "No OTA pending"
     OtaPhase.READING_SLOT   -> "Reading A/B slot…"
-    OtaPhase.DUMPING_BOOT   -> "Dumping boot image…"
-    OtaPhase.PATCHING       -> "Patching boot image…"
-    OtaPhase.FLASHING       -> "Flashing patched image…"
+    OtaPhase.PATCHING       -> "Patching & flashing…"
     OtaPhase.DONE           -> "Done"
     OtaPhase.ERROR          -> "Error"
 }

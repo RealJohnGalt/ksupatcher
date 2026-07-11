@@ -45,9 +45,7 @@ enum class OtaPhase {
     CHECKING_OTA_PROP,
     NO_OTA_PENDING,
     READING_SLOT,
-    DUMPING_BOOT,
     PATCHING,
-    FLASHING,
     DONE,
     ERROR
 }
@@ -768,10 +766,13 @@ class MainViewModel(
         }
     }
 
+    private fun shellQuote(arg: String): String = "'" + arg.replace("'", "'\\''") + "'"
+
     private suspend fun executeCommandStreaming(
-        command: List<String>, 
-        workDir: File, 
-        initialLog: String? = null
+        command: List<String>,
+        workDir: File,
+        initialLog: String? = null,
+        displayCommand: String? = null
     ): Result<String> {
         return withContext(Dispatchers.IO) {
             runCatching {
@@ -798,9 +799,13 @@ class MainViewModel(
                     appendTrimmed(sb, "\n\n")
                 }
                 
-                val binaryName = File(command.first()).name
-                val simplifiedBinary = binaryName.replace(Regex("^lib"), "").replace(Regex("\\.so$"), "")
-                val prettyCommand = "$ $simplifiedBinary ${command.drop(1).joinToString(" ")}"
+                val prettyCommand = if (!displayCommand.isNullOrBlank()) {
+                    "$ $displayCommand"
+                } else {
+                    val binaryName = File(command.first()).name
+                    val simplifiedBinary = binaryName.replace(Regex("^lib"), "").replace(Regex("\\.so$"), "")
+                    "$ $simplifiedBinary ${command.drop(1).joinToString(" ")}"
+                }
                 appendTrimmed(sb, prettyCommand)
                 appendTrimmed(sb, "\n")
                 publishStreamingLog(sb.toString(), updatePatch = true)
@@ -1014,37 +1019,6 @@ class MainViewModel(
             val targetSlot = nextSlot  // slot whose boot partition we touch
             appendLog("Current slot: $currentSlot  →  target slot: $targetSlot")
 
-            setPhase(OtaPhase.DUMPING_BOOT)
-            val workDir = getWorkDir()
-            val dumpedImg = File(workDir, "next-boot.img")
-
-            // prefer init_boot over boot if it exists
-            val initBootDevice = "/dev/block/by-name/init_boot$targetSlot"
-            val bootDevice = "/dev/block/by-name/boot$targetSlot"
-            val blockDevice = try {
-                val hasInitBoot = RootShell.run("[ -e $initBootDevice ] && echo yes || echo no").trim()
-                if (hasInitBoot == "yes") {
-                    appendLog("init_boot partition detected.")
-                    initBootDevice
-                } else {
-                    bootDevice
-                }
-            } catch (e: Throwable) {
-                appendLog("Fallback: ${e.message}")
-                bootDevice
-            }
-
-            appendLog("$ dd if=$blockDevice of=${dumpedImg.absolutePath} bs=4096")
-            try {
-                RootShell.run("dd if=$blockDevice of=${dumpedImg.absolutePath} bs=4096")
-            } catch (e: Throwable) {
-                setPhase(OtaPhase.ERROR)
-                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Dump failed")) }
-                appendLog("DD (dump) failed: ${e.message}")
-                return
-            }
-            appendLog("Boot image dumped (${dumpedImg.length() / 1024} KB).")
-
             setPhase(OtaPhase.PATCHING)
             val binaryPrepare = ensureBinaries()
             if (binaryPrepare.isFailure) {
@@ -1053,6 +1027,7 @@ class MainViewModel(
                 appendLog("Binary preparation failed: ${binaryPrepare.exceptionOrNull()?.message}")
                 return
             }
+            val workDir = getWorkDir()
             val ksud = resolveBundledBinaryForVariant(_state.value.patchState.variant)
             val module = _state.value.patchState.modulePath
             if (module.isNullOrBlank()) {
@@ -1061,54 +1036,42 @@ class MainViewModel(
                 appendLog("No kernel module found. Please select one manually or ensure your internet connection is active to auto-download.")
                 return
             }
-            val patchCmd = buildList {
-                add(ksud.absolutePath)
-                add("boot-patch")
-                add("-b")
-                add(dumpedImg.absolutePath)
-                add("--kmi")
-                add(_state.value.patchState.kmi)
-                add("--module")
-                add(module)
-                add("-o")
-                add(workDir.absolutePath)
-                if (_state.value.patchState.allowShell) add("--allow-shell")
-                if (_state.value.patchState.enableAdbd) add("--enable-adbd")
+
+            // pin the partition from the device so a wrong kmi can't send the patch to boot on an init_boot device (ksud still owns the slot + flashing)
+            val targetPartition = try {
+                val hasInitBoot = RootShell.run("[ -e /dev/block/by-name/init_boot$targetSlot ] && echo yes || echo no").trim()
+                if (hasInitBoot == "yes") "init_boot" else "boot"
+            } catch (_: Throwable) {
+                "boot"
             }
-            appendLog("Patching boot image...")
+            appendLog("Target partition: $targetPartition$targetSlot")
+
+            // no -b so ksud auto-detects the slot; --ota = inactive slot
+            val patch = _state.value.patchState
+            val ksudArgs = buildList {
+                add("boot-patch")
+                add("--flash")
+                if (!lkmMode) add("--ota")
+                add("--partition"); add(targetPartition)
+                add("--kmi"); add(patch.kmi)
+                add("--module"); add(module)
+                if (patch.allowShell) add("--allow-shell")
+                if (patch.enableAdbd) add("--enable-adbd")
+            }
+            val ksudLine = (listOf(ksud.absolutePath) + ksudArgs).joinToString(" ") { shellQuote(it) }
+            val rootCommand = listOf("su", "-c", ksudLine)
+            val displayCommand = "ksud " + ksudArgs.joinToString(" ").replace(module, File(module).name)
+
+            appendLog(
+                if (lkmMode) "Installing to current slot ($currentSlot)..."
+                else "Patching and flashing inactive slot ($targetSlot)..."
+            )
             val initialLog = if (lkmMode) _state.value.patchState.lastOutput else _state.value.otaState.log
-            val patchResult = executeCommandStreaming(patchCmd, workDir, initialLog)
+            val patchResult = executeCommandStreaming(rootCommand, workDir, initialLog, displayCommand)
             if (patchResult.isFailure) {
                 setPhase(OtaPhase.ERROR)
-                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Patch failed")) }
-                appendLog("Patch failed: ${patchResult.exceptionOrNull()?.message}")
-                return
-            }
-            val patchedImg = findPatchedImage(workDir)
-            if (patchedImg == null) {
-                setPhase(OtaPhase.ERROR)
-                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Image not found")) }
-                appendLog("Patched image not found in work directory.")
-                return
-            }
-            appendLog("Patched image: ${patchedImg.name} (${patchedImg.length() / 1024} KB)")
-
-            setPhase(OtaPhase.FLASHING)
-            appendLog("Flashing to partition: $blockDevice...")
-            try {
-                // harden block device access
-                val roCheck = RootShell.run("blockdev --getro $blockDevice").trim()
-                if (roCheck == "1") {
-                    appendLog("$ blockdev --setrw $blockDevice")
-                    RootShell.run("blockdev --setrw $blockDevice")
-                }
-                
-                appendLog("$ dd if=${patchedImg.absolutePath} of=$blockDevice bs=4096")
-                RootShell.run("dd if=${patchedImg.absolutePath} of=$blockDevice bs=4096")
-            } catch (e: Throwable) {
-                setPhase(OtaPhase.ERROR)
-                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Flash failed")) }
-                appendLog("DD (flash) failed: ${e.message}")
+                if (lkmMode) _state.update { it.copy(patchState = it.patchState.copy(status = "Install failed")) }
+                appendLog("Install failed: ${patchResult.exceptionOrNull()?.message}")
                 return
             }
 
