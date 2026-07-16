@@ -78,7 +78,7 @@ data class UiState(
 )
 
 data class PatchState(
-    val variant: KsuVariant = KsuVariant.KSU,
+    val variant: KsuVariant = KsuVariant.KSUN,
     val method: InstallMethod = InstallMethod.PATCH,
     val bootImageName: String? = null,
     val bootImagePath: String? = null,

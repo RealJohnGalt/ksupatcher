@@ -45,7 +45,6 @@ import org.akuatech.ksupatcher.ui.components.*
 import org.akuatech.ksupatcher.util.defaultLogFileName
 import org.akuatech.ksupatcher.util.writeLogToUri
 import org.akuatech.ksupatcher.viewmodel.InstallMethod
-import org.akuatech.ksupatcher.viewmodel.KsuVariant
 import org.akuatech.ksupatcher.viewmodel.OtaPhase
 import org.akuatech.ksupatcher.viewmodel.RootStatus
 import org.akuatech.ksupatcher.viewmodel.UiState
@@ -53,7 +52,6 @@ import org.akuatech.ksupatcher.viewmodel.UiState
 @Composable
 fun PatchScreen(
     state: UiState,
-    onVariantSelected: (KsuVariant) -> Unit,
     onMethodSelected: (InstallMethod) -> Unit,
     onPickBoot: (Uri) -> Unit,
     onPickModule: (Uri) -> Unit,
@@ -118,34 +116,8 @@ fun PatchScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Step 1: Variant
-        AppStepHeader(number = "01", title = "Variant")
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            AppActionTile(
-                title = "KernelSU",
-                drawableRes = org.akuatech.ksupatcher.R.drawable.ic_ksu_logo,
-                selected = patch.variant == KsuVariant.KSU,
-                onClick = { onVariantSelected(KsuVariant.KSU) },
-                modifier = Modifier.weight(1f)
-            )
-            AppActionTile(
-                title = "KernelSU-Next",
-                drawableRes = org.akuatech.ksupatcher.R.drawable.ic_ksun_logo,
-                selected = patch.variant == KsuVariant.KSUN,
-                onClick = { onVariantSelected(KsuVariant.KSUN) },
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        StepConnector()
-        Spacer(modifier = Modifier.height(8.dp))
-        // Step 2: Method
-        AppStepHeader(number = "02", title = "Method")
+        // Step 1: Method
+        AppStepHeader(number = "01", title = "Method")
         Spacer(modifier = Modifier.height(12.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -171,8 +143,8 @@ fun PatchScreen(
         Spacer(modifier = Modifier.height(8.dp))
         StepConnector()
         Spacer(modifier = Modifier.height(8.dp))
-        // Step 3: Action
-        AppStepHeader(number = "03", title = "Action")
+        // Step 2: Action
+        AppStepHeader(number = "02", title = "Action")
         Spacer(modifier = Modifier.height(12.dp))
 
         if (patch.method == InstallMethod.PATCH) {

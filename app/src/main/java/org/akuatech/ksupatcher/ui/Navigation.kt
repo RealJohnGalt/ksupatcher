@@ -109,7 +109,6 @@ fun KsuPatcherNavGraph(
             composable("install") {
                 PatchScreen(
                     state = state,
-                    onVariantSelected = { viewModel.selectVariant(it) },
                     onMethodSelected = { viewModel.selectMethod(it) },
                     onPickBoot = { viewModel.importBootImage(it) },
                     onPickModule = { viewModel.importModule(it) },
@@ -136,11 +135,9 @@ fun KsuPatcherNavGraph(
                     otaState = state.otaState,
                     rootStatus = state.rootStatus,
                     isCheckingRoot = state.isCheckingRoot,
-                    variant = state.patchState.variant,
                     moduleName = state.patchState.moduleName,
                     allowShell = state.patchState.allowShell,
                     enableAdbd = state.patchState.enableAdbd,
-                    onVariantSelected = { viewModel.selectVariant(it) },
                     onPickModule = { viewModel.importModule(it) },
                     onRunOta = { viewModel.runOtaPatch() },
                     onResetOta = { viewModel.resetOta() },
