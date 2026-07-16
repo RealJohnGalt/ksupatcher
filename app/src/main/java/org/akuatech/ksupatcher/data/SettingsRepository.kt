@@ -30,7 +30,7 @@ class SettingsRepository(
     }
 
     val kmiFlow: Flow<String> = context.settingsDataStore.data.map { prefs ->
-        prefs[kmiKey] ?: "android12-5.10"
+        prefs[kmiKey] ?: "android14-6.1"
     }
 
     suspend fun setKmi(kmi: String) {

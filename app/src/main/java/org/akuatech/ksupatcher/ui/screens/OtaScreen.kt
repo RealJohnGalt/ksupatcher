@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import org.akuatech.ksupatcher.ui.components.*
 import org.akuatech.ksupatcher.util.defaultLogFileName
 import org.akuatech.ksupatcher.util.writeLogToUri
-import org.akuatech.ksupatcher.viewmodel.KsuVariant
 import org.akuatech.ksupatcher.viewmodel.OtaPhase
 import org.akuatech.ksupatcher.viewmodel.OtaState
 import org.akuatech.ksupatcher.viewmodel.RootStatus
@@ -50,11 +49,9 @@ fun OtaScreen(
     otaState: OtaState,
     rootStatus: RootStatus,
     isCheckingRoot: Boolean,
-    variant: KsuVariant,
     moduleName: String?,
     allowShell: Boolean,
     enableAdbd: Boolean,
-    onVariantSelected: (KsuVariant) -> Unit,
     onPickModule: (Uri) -> Unit,
     onRunOta: () -> Unit,
     onResetOta: () -> Unit,
@@ -150,34 +147,7 @@ fun OtaScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            AppStepHeader(number = "01", title = "Variant")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                AppActionTile(
-                    title = "KernelSU",
-                    drawableRes = org.akuatech.ksupatcher.R.drawable.ic_ksu_logo,
-                    selected = variant == KsuVariant.KSU,
-                    onClick = { onVariantSelected(KsuVariant.KSU) },
-                    modifier = Modifier.weight(1f)
-                )
-                AppActionTile(
-                    title = "KernelSU-Next",
-                    drawableRes = org.akuatech.ksupatcher.R.drawable.ic_ksun_logo,
-                    selected = variant == KsuVariant.KSUN,
-                    onClick = { onVariantSelected(KsuVariant.KSUN) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-        StepConnector()
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            AppStepHeader(number = "02", title = "Action")
+            AppStepHeader(number = "01", title = "Action")
             FileSelector(
                 label = "Kernel Module",
                 fileName = moduleName,

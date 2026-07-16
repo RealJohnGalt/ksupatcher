@@ -78,7 +78,7 @@ data class UiState(
 )
 
 data class PatchState(
-    val variant: KsuVariant = KsuVariant.KSU,
+    val variant: KsuVariant = KsuVariant.KSUN,
     val method: InstallMethod = InstallMethod.PATCH,
     val bootImageName: String? = null,
     val bootImagePath: String? = null,
@@ -90,7 +90,7 @@ data class PatchState(
     val lastOutput: String? = null,
     val outputPath: String? = null,
     val rebootRequired: Boolean = false,
-    val kmi: String = "android12-5.10",
+    val kmi: String = "android14-6.1",
     val allowShell: Boolean = false,
     val enableAdbd: Boolean = false
 )
